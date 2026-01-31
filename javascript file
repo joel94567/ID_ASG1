@@ -1,0 +1,243 @@
+// ========== MUSIC PAGE ==========
+
+
+const pages = ["home", "music", "concert", "merch"];
+const navButtons = document.querySelectorAll(".nav-btn[data-route]");
+const sections = pages.map(id => document.getElementById(id));
+
+function showPage(id){
+  sections.forEach(sec => sec.classList.toggle("is-visible", sec.id === id));
+  navButtons.forEach(btn => btn.classList.toggle("is-active", btn.dataset.route === id));
+
+  document.querySelector(".main").scrollTop = 0;
+}
+
+navButtons.forEach(btn => {
+  btn.addEventListener("click", () => showPage(btn.dataset.route));
+});
+
+
+let selectedDate = "March 14";
+let selectedSeat = "CAT 3";
+
+const dateChips = document.querySelectorAll(".chip[data-date]");
+const seatChips = document.querySelectorAll(".chip[data-seat]");
+const selectedDateEl = document.querySelector("[data-selected-date]");
+const selectedSeatEl = document.querySelector("[data-selected-seat]");
+const totalEl = document.querySelector("[data-total]");
+
+const seatPricing = {
+  "CAT 1": 299,
+  "CAT 2": 229,
+  "CAT 3": 179,
+};
+
+function updateConcertUI(){
+  selectedDateEl.textContent = selectedDate;
+  selectedSeatEl.textContent = selectedSeat;
+  totalEl.textContent = `$${seatPricing[selectedSeat]}`;
+}
+
+dateChips.forEach(chip => {
+  chip.addEventListener("click", () => {
+    selectedDate = chip.dataset.date;
+    dateChips.forEach(c => c.classList.toggle("is-selected", c === chip));
+    updateConcertUI();
+  });
+});
+
+seatChips.forEach(chip => {
+  chip.addEventListener("click", () => {
+    selectedSeat = chip.dataset.seat;
+    seatChips.forEach(c => c.classList.toggle("is-selected", c === chip));
+    updateConcertUI();
+  });
+});
+
+updateConcertUI();
+
+// ---- Cart ----
+const cartDrawer = document.querySelector("[data-cart]");
+const backdrop = document.querySelector("[data-backdrop]");
+const openCartBtns = document.querySelectorAll("[data-open-cart]");
+const closeCartBtn = document.querySelector("[data-close-cart]");
+const cartItemsEl = document.querySelector("[data-cart-items]");
+const cartCountEls = document.querySelectorAll("[data-cart-count]");
+const cartSubtotalEl = document.querySelector("[data-cart-subtotal]");
+const checkoutBtn = document.querySelector("[data-checkout]");
+const checkoutNote = document.querySelector("[data-checkout-note]");
+
+const cart = new Map(); // sku -> {name, price, qty}
+
+function openCart(){
+  cartDrawer.classList.add("is-open");
+  backdrop.classList.add("is-open");
+}
+function closeCart(){
+  cartDrawer.classList.remove("is-open");
+  backdrop.classList.remove("is-open");
+}
+
+openCartBtns.forEach(b => b.addEventListener("click", openCart));
+closeCartBtn.addEventListener("click", closeCart);
+backdrop.addEventListener("click", closeCart);
+
+function money(n){ return `$${n.toFixed(0)}`; }
+
+function cartCount(){
+  let count = 0;
+  for (const item of cart.values()) count += item.qty;
+  return count;
+}
+
+function cartSubtotal(){
+  let sum = 0;
+  for (const item of cart.values()) sum += item.price * item.qty;
+  return sum;
+}
+
+function renderCart(){
+  cartItemsEl.innerHTML = "";
+
+  if (cart.size === 0){
+    cartItemsEl.innerHTML = `<p class="small-note">Your cart is empty.</p>`;
+  } else {
+    for (const [sku, item] of cart.entries()){
+      const row = document.createElement("div");
+      row.className = "cart-item";
+      row.innerHTML = `
+        <div class="cart-item-top">
+          <div>
+            <div class="cart-item-name">${item.name}</div>
+            <div class="small-note">${money(item.price)} each</div>
+          </div>
+          <button class="remove" data-remove="${sku}">Remove</button>
+        </div>
+
+        <div class="cart-item-controls">
+          <button class="qty-btn" data-dec="${sku}">-</button>
+          <div class="qty">${item.qty}</div>
+          <button class="qty-btn" data-inc="${sku}">+</button>
+          <div style="margin-left:auto;font-weight:900;">
+            ${money(item.price * item.qty)}
+          </div>
+        </div>
+      `;
+      cartItemsEl.appendChild(row);
+    }
+  }
+
+  const count = cartCount();
+  cartCountEls.forEach(el => (el.textContent = count));
+
+  cartSubtotalEl.textContent = money(cartSubtotal());
+}
+
+function addToCart(sku, name, price){
+  const p = Number(price);
+  const existing = cart.get(sku);
+  if (existing) existing.qty += 1;
+  else cart.set(sku, { name, price: p, qty: 1 });
+  renderCart();
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target;
+
+  // Add merch
+  if (t.matches("[data-add-to-cart]")){
+    const product = t.closest(".product");
+    addToCart(product.dataset.sku, product.dataset.name, product.dataset.price);
+    openCart();
+  }
+
+  // Remove
+  if (t.matches("[data-remove]")){
+    cart.delete(t.dataset.remove);
+    renderCart();
+  }
+
+  // Increment / decrement
+  if (t.matches("[data-inc]")){
+    const sku = t.dataset.inc;
+    const item = cart.get(sku);
+    if (item){ item.qty += 1; renderCart(); }
+  }
+  if (t.matches("[data-dec]")){
+    const sku = t.dataset.dec;
+    const item = cart.get(sku);
+    if (item){
+      item.qty -= 1;
+      if (item.qty <= 0) cart.delete(sku);
+      renderCart();
+    }
+  }
+
+  <article class="product" data-sku="tee-002" data-name="Tour Tee" data-price="35">
+  <div class="prod-img">picture<br/>of<br/>merch</div>
+
+  <div class="prod-meta">
+    <div class="prod-name">Tour Tee</div>
+    <div class="prod-price">$35</div>
+  </div>
+
+  <div class="merch-item">
+    <label for="size-tee-002">Size:</label>
+    <select id="size-tee-002" class="size-select">
+      <option value="S">Small</option>
+      <option value="M">Medium</option>
+      <option value="L">Large</option>
+      <option value="XL">Extra Large</option>
+    </select>
+  </div>
+
+  <button class="add" data-add-to-cart>Add to cart</button>
+</article>
+
+
+  const cart = [];
+
+document.addEventListener("click", (e) => {
+  if (!e.target.classList.contains("add-to-cart")) return;
+
+  const item = e.target.closest(".merch-item");
+  const size = item.querySelector(".size-select").value;
+
+  const name = e.target.dataset.name;
+  const price = e.target.dataset.price;
+
+  cart.push({
+    name,
+    price,
+    size
+  });
+
+ 
+  console.log(cart);
+});
+
+});
+
+// Add ticket to cart
+document.querySelector("[data-add-ticket]").addEventListener("click", () => {
+  const sku = `ticket-${selectedDate.replace(" ", "").toLowerCase()}-${selectedSeat.replace(" ", "").toLowerCase()}`;
+  const name = `Concert Ticket (${selectedDate}, ${selectedSeat})`;
+  const price = seatPricing[selectedSeat];
+  addToCart(sku, name, price);
+  openCart();
+});
+
+// Checkout (demo)
+checkoutBtn.addEventListener("click", () => {
+  const total = cartSubtotal();
+  if (total <= 0){
+    checkoutNote.textContent = "Add something first 🙂";
+    return;
+  }
+  checkoutNote.textContent = `Checkout complete (demo)! You paid ${money(total)}.`;
+  cart.clear();
+  renderCart();
+});
+
+// initial render
+renderCart();
